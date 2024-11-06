@@ -2,6 +2,8 @@
 
 This program generates a "transporter" effect inspired by Star Trek, which overlays an animated glitter effect on a silhouette detected from a webcam feed. The program can display the effect in a virtual camera for use in other video applications, giving the illusion of a person appearing and disappearing in a glittering transporter effect.
 
+[![Transporter YouTube video](http://img.youtube.com/vi/A2Y3eXzG_xU/0.jpg)](http://www.youtube.com/watch?v=A2Y3eXzG_xU "Transporter Demo")
+
 ## Table of Contents
 
 1. [Features](#features)
@@ -10,8 +12,9 @@ This program generates a "transporter" effect inspired by Star Trek, which overl
 4. [Usage](#usage)
 5. [Key Controls](#key-controls)
 6. [Customization](#customization)
-7. [Troubleshooting](#troubleshooting)
-8. [License](#license)
+7. [Notes](#notes)
+8. [Troubleshooting](#troubleshooting)
+9. [License](#license)
 
 ---
 
@@ -36,6 +39,8 @@ This program generates a "transporter" effect inspired by Star Trek, which overl
 - **Files**:
   - `background.png`: A static background image for the transporter effect.
   - `effects` folder containing animated GIF files for glitter effects.
+  
+You must have a virtual camera set up to use this script. Supported virtual cameras are on the [pyvirtualcam webpage](https://pypi.org/project/pyvirtualcam/). I have had better luck with [Unity Capture](https://github.com/schellingb/UnityCapture) than the [OBS](https://obsproject.com/) virtual cam. 
 
 ## Setup
 
@@ -59,7 +64,7 @@ This program generates a "transporter" effect inspired by Star Trek, which overl
 * **L:** Switch to live mode immediately.
 * **N:** Cycle through glitter effects in the `effects` directory.
 * **P:** Show a 5-second live preview.
-* **B:** Capture a new background with a 5-second countdown.
+* **B:** Capture a new background (with a 5-second countdown).
 * **0 - 4:** Switch between connected cameras.
 * **Q:** Quit the program.
 
@@ -71,6 +76,9 @@ This program generates a "transporter" effect inspired by Star Trek, which overl
 ### Adjusting Effect Duration and Frame Rate
 * `duration_seconds`: Duration of the effect.
 * `frame_rate`: Number of frames per second.
+
+## Notes
+The transporter sound effect is only played through the local speaker. If you want to have the sound effect play over your web meeting (mixed in with your live audio), you need to create a virtual microphone using a tool like [Virtual Audio Cable](https://vac.muzychenko.net/en/) or [pyvirtualaudiocable](https://github.com/dynopii/pyvirtualaudiocable)
 
 ## Troubleshooting
 1. **Program Exits Abruptly:** Ensure all dependencies are installed. Check for any error messages in the terminal.

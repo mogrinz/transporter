@@ -7,6 +7,9 @@ from PIL import Image
 import pyvirtualcam
 import os
 
+#transporterWebcam, Nov 2024 Michael Ogrinz
+#https://github.com/mogrinz/transporter
+
 # Initialize pygame mixer for sound playback
 pygame.mixer.init()
 
