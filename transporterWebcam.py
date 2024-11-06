@@ -104,6 +104,7 @@ def show_preview(seconds=5):
 # Main loop flags
 live_mode = False
 show_background = True
+transport_out_countdown_flag = False
 
 # Function to switch to a specified camera with retries
 def switch_camera(index, retries=3, delay=0.5):
@@ -122,6 +123,79 @@ def switch_camera(index, retries=3, delay=0.5):
     print(f"Failed to initialize camera {camera_index}. Reverting to camera 0.")
     camera_index = 0
     cap = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
+
+def transport_out():
+    print("Starting reverse transporter effect.")
+                
+    pygame.mixer.music.load("sound_effect.mp3")
+    pygame.mixer.music.play()
+
+    frame_index = 0
+    glitter_alpha = 0.0
+
+    while glitter_alpha < 0.9:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        frame = cv2.resize(frame, (background_image.shape[1], background_image.shape[0]))
+
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = pose.process(frame_rgb)
+
+        if results.segmentation_mask is not None:
+            silhouette_mask = (results.segmentation_mask > 0.5).astype(np.uint8) * 255
+            silhouette_mask = cv2.resize(silhouette_mask, (background_image.shape[1], background_image.shape[0]))
+
+            gif_frame = gif_frames[frame_index % len(gif_frames)]
+            masked_glitter = cv2.bitwise_and(gif_frame, gif_frame, mask=silhouette_mask)
+
+            live_silhouette = cv2.bitwise_and(frame, frame, mask=silhouette_mask)
+            combined_silhouette = cv2.addWeighted(masked_glitter, glitter_alpha, live_silhouette, 1 - glitter_alpha, 0)
+
+            combined_frame = background_image.copy()
+            combined_frame[silhouette_mask > 0] = combined_silhouette[silhouette_mask > 0]
+                        
+            cv2.imshow('Webcam Feed', combined_frame)
+            cam.send(cv2.cvtColor(combined_frame, cv2.COLOR_BGR2RGB))
+            cv2.waitKey(int(1000 / frame_rate))
+
+            glitter_alpha += alpha_increment
+            frame_index += 1
+
+    fade_out_duration_ms = int((glitter_alpha / alpha_increment) * (1000 / frame_rate))
+    pygame.mixer.music.fadeout(fade_out_duration_ms)
+
+    while glitter_alpha > 0.0:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        frame = cv2.resize(frame, (background_image.shape[1], background_image.shape[0]))
+
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = pose.process(frame_rgb)
+
+        if results.segmentation_mask is not None:
+            silhouette_mask = (results.segmentation_mask > 0.5).astype(np.uint8) * 255
+            silhouette_mask = cv2.resize(silhouette_mask, (background_image.shape[1], background_image.shape[0]))
+
+            gif_frame = gif_frames[frame_index % len(gif_frames)]
+            masked_glitter = cv2.bitwise_and(gif_frame, gif_frame, mask=silhouette_mask)
+
+            combined_silhouette = cv2.addWeighted(masked_glitter, glitter_alpha, background_image, 1 - glitter_alpha, 0)
+            combined_frame = background_image.copy()
+            combined_frame[silhouette_mask > 0] = combined_silhouette[silhouette_mask > 0]
+
+            cv2.imshow('Webcam Feed', combined_frame)
+            cam.send(cv2.cvtColor(combined_frame, cv2.COLOR_BGR2RGB))
+            cv2.waitKey(int(1000 / frame_rate))
+
+            glitter_alpha -= alpha_increment
+            frame_index += 1
+
+    cv2.imshow('Webcam Feed', background_image)
+    cam.send(cv2.cvtColor(background_image, cv2.COLOR_BGR2RGB))
+    cv2.waitKey(1000)
+
 
 # Start virtual camera with PyVirtualCam
 with pyvirtualcam.Camera(width=background_image.shape[1], height=background_image.shape[0], fps=30) as cam:
@@ -227,92 +301,18 @@ with pyvirtualcam.Camera(width=background_image.shape[1], height=background_imag
             cv2.imshow('Webcam Feed', frame)
             cam.send(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
             key = cv2.waitKey(30)
-
-            if key == ord('o'):
-                print("Starting 3-second delay before transport-out effect.")
-                start_time = time.time()
-
-                # Keep capturing and displaying frames during the delay
-                while (time.time() - start_time) < 3:
-                    ret, frame = cap.read()
-                    if not ret:
-                        break
-                    frame = cv2.resize(frame, (background_image.shape[1], background_image.shape[0]))
-                    cv2.imshow('Webcam Feed', frame)
-                    cv2.waitKey(30)
-
-                print("Starting reverse transporter effect.")
-                pygame.mixer.music.load("sound_effect.mp3")
-                pygame.mixer.music.play()
-
-                frame_index = 0
-                glitter_alpha = 0.0
-
-                while glitter_alpha < 0.9:
-                    ret, frame = cap.read()
-                    if not ret:
-                        break
-                    frame = cv2.resize(frame, (background_image.shape[1], background_image.shape[0]))
-
-                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    results = pose.process(frame_rgb)
-
-                    if results.segmentation_mask is not None:
-                        silhouette_mask = (results.segmentation_mask > 0.5).astype(np.uint8) * 255
-                        silhouette_mask = cv2.resize(silhouette_mask, (background_image.shape[1], background_image.shape[0]))
-
-                        gif_frame = gif_frames[frame_index % len(gif_frames)]
-                        masked_glitter = cv2.bitwise_and(gif_frame, gif_frame, mask=silhouette_mask)
-
-                        live_silhouette = cv2.bitwise_and(frame, frame, mask=silhouette_mask)
-                        combined_silhouette = cv2.addWeighted(masked_glitter, glitter_alpha, live_silhouette, 1 - glitter_alpha, 0)
-
-                        combined_frame = background_image.copy()
-                        combined_frame[silhouette_mask > 0] = combined_silhouette[silhouette_mask > 0]
-                        
-                        cv2.imshow('Webcam Feed', combined_frame)
-                        cam.send(cv2.cvtColor(combined_frame, cv2.COLOR_BGR2RGB))
-                        cv2.waitKey(int(1000 / frame_rate))
-
-                        glitter_alpha += alpha_increment
-                        frame_index += 1
-
-                fade_out_duration_ms = int((glitter_alpha / alpha_increment) * (1000 / frame_rate))
-                pygame.mixer.music.fadeout(fade_out_duration_ms)
-
-                while glitter_alpha > 0.0:
-                    ret, frame = cap.read()
-                    if not ret:
-                        break
-                    frame = cv2.resize(frame, (background_image.shape[1], background_image.shape[0]))
-
-                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    results = pose.process(frame_rgb)
-
-                    if results.segmentation_mask is not None:
-                        silhouette_mask = (results.segmentation_mask > 0.5).astype(np.uint8) * 255
-                        silhouette_mask = cv2.resize(silhouette_mask, (background_image.shape[1], background_image.shape[0]))
-
-                        gif_frame = gif_frames[frame_index % len(gif_frames)]
-                        masked_glitter = cv2.bitwise_and(gif_frame, gif_frame, mask=silhouette_mask)
-
-                        combined_silhouette = cv2.addWeighted(masked_glitter, glitter_alpha, background_image, 1 - glitter_alpha, 0)
-                        combined_frame = background_image.copy()
-                        combined_frame[silhouette_mask > 0] = combined_silhouette[silhouette_mask > 0]
-
-                        cv2.imshow('Webcam Feed', combined_frame)
-                        cam.send(cv2.cvtColor(combined_frame, cv2.COLOR_BGR2RGB))
-                        cv2.waitKey(int(1000 / frame_rate))
-
-                        glitter_alpha -= alpha_increment
-                        frame_index += 1
-
-                cv2.imshow('Webcam Feed', background_image)
-                cam.send(cv2.cvtColor(background_image, cv2.COLOR_BGR2RGB))
-                cv2.waitKey(1000)
-
+            
+            
+            if transport_out_countdown_flag==True and (time.time() - start_time) > 3:
+                transport_out()
+                transport_out_countdown_flag=False
                 show_background = True
                 live_mode = False
+            
+            if key == ord('o'):
+                print("Starting 3-second delay before transport-out effect.")
+                transport_out_countdown_flag = True
+                start_time = time.time()
 
             if key == ord('q'):
                 print("Exiting program.")
